@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brantford Outfit Advisor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .location {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .weather-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .temp-display {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .temp-item {
+            text-align: center;
+        }
+        
+        .temp-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        
+        .temp-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .recommendation {
+            background: #667eea;
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        
+        .recommendation-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .last-update {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-size: 18px;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>What Should I Wear?</h1>
+        <div class="location">Brantford, Ontario, Canada</div>
+        
+        <div id="content">
+            <div class="loading">Loading weather data...</div>
+        </div>
+        
+        <div class="last-update" id="lastUpdate"></div>
+    </div>
+
+    <script>
+        const LATITUDE = 43.1394;
+        const LONGITUDE = -80.2644;
+        const API_URL = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&daily=temperature_2m_max,temperature_2m_min&timezone=America/Toronto&forecast_days=1`;
+        
+        const outfitTable = {
+            '-30': {
+                '0-5': 'Extreme winter coat, multiple thermal layers, insulated boots, balaclava, heavy gloves',
+                '5-10': 'Extreme coat with removable mid-layer, full face protection, insulated boots',
+                '10+': 'Extreme coat, thermal vest and base layer, face protection you can adjust'
+            },
+            '-20': {
+                '0-5': 'Heavy parka, thermal base layers, insulated boots, balaclava, insulated gloves',
+                '5-10': 'Heavy parka with removable fleece layer, winter boots, face protection',
+                '10+': 'Heavy parka, thermal layers underneath, adjustable face covering'
+            },
+            '-15': {
+                '0-5': 'Winter parka, thermal underlayers, winter boots, hat, insulated gloves',
+                '5-10': 'Winter parka with removable sweater layer, winter boots, warm accessories',
+                '10+': 'Winter parka, fleece or sweater underneath, hat and gloves'
+            },
+            '-10': {
+                '0-5': 'Heavy winter coat, warm underlayers, winter boots, hat, gloves',
+                '5-10': 'Heavy winter coat with removable layer, winter boots, warm accessories',
+                '10+': 'Heavy coat, thermal or fleece layer, winter accessories'
+            },
+            '-5': {
+                '0-5': 'Winter coat, long sleeves, insulated footwear, hat, gloves',
+                '5-10': 'Winter coat with removable fleece, long pants, warm accessories',
+                '10+': 'Winter coat, sweater underneath, hat you can pocket'
+            },
+            '0': {
+                '0-5': 'Winter jacket, long sleeves, closed shoes',
+                '5-10': 'Winter jacket with removable fleece/sweater, long pants',
+                '10+': 'Winter jacket, cardigan underneath, scarf you can remove'
+            },
+            '5': {
+                '0-5': 'Warm jacket, long sleeves, closed shoes',
+                '5-10': 'Warm jacket with removable sweater, long pants',
+                '10+': 'Jacket with hoodie or cardigan underneath'
+            },
+            '10': {
+                '0-5': 'Light jacket or thick sweater, long pants',
+                '5-10': 'Light jacket with long-sleeve shirt, pants',
+                '10+': 'Light jacket with t-shirt underneath, pants'
+            },
+            '15': {
+                '0-5': 'Long-sleeve shirt or light sweater, pants',
+                '5-10': 'Long-sleeve shirt with t-shirt underneath, pants',
+                '10+': 'Hoodie or light jacket over t-shirt, pants'
+            },
+            '20': {
+                '0-5': 'Long-sleeve shirt or t-shirt, pants',
+                '5-10': 'T-shirt with thin overshirt option, pants',
+                '10+': 'T-shirt with light cardigan option, pants or jeans'
+            },
+            '25': {
+                '0-5': 'T-shirt, light pants or shorts',
+                '5-10': 'T-shirt with optional thin layer, light pants or shorts',
+                '10+': 'T-shirt, bring thin layer for start/end of walk'
+            },
+            '30': {
+                '0-5': 'T-shirt, shorts',
+                '5-10': 'T-shirt, shorts, optional sun layer',
+                '10+': 'T-shirt, shorts, light layer for morning only'
+            }
+        };
+
+        function getTempCategory(temp) {
+            if (temp < -20) return '-30';
+            if (temp < -15) return '-20';
+            if (temp < -10) return '-15';
+            if (temp < -5) return '-10';
+            if (temp < 0) return '-5';
+            if (temp < 5) return '0';
+            if (temp < 10) return '5';
+            if (temp < 15) return '10';
+            if (temp < 20) return '15';
+            if (temp < 25) return '20';
+            if (temp < 30) return '25';
+            return '30';
+        }
+
+        function getRangeCategory(range) {
+            if (range < 5) return '0-5';
+            if (range <= 10) return '5-10';
+            return '10+';
+        }
+
+        function getOutfitRecommendation(maxTemp, minTemp) {
+            const range = maxTemp - minTemp;
+            const tempCat = getTempCategory(maxTemp);
+            const rangeCat = getRangeCategory(range);
+            
+            return outfitTable[tempCat][rangeCat];
+        }
+
+        async function fetchWeather() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Weather data unavailable');
+                
+                const data = await response.json();
+                const maxTemp = Math.round(data.daily.temperature_2m_max[0]);
+                const minTemp = Math.round(data.daily.temperature_2m_min[0]);
+                const recommendation = getOutfitRecommendation(maxTemp, minTemp);
+                
+                displayWeather(maxTemp, minTemp, recommendation);
+                updateLastUpdateTime();
+            } catch (error) {
+                displayError('Unable to fetch weather data. Please try again later.');
+            }
+        }
+
+        function displayWeather(maxTemp, minTemp, recommendation) {
+            const range = maxTemp - minTemp;
+            document.getElementById('content').innerHTML = `
+                <div class="weather-info">
+                    <div class="temp-display">
+                        <div class="temp-item">
+                            <div class="temp-label">Min</div>
+                            <div class="temp-value">${minTemp}°C</div>
+                        </div>
+                        <div class="temp-item">
+                            <div class="temp-label">Max</div>
+                            <div class="temp-value">${maxTemp}°C</div>
+                        </div>
+                        <div class="temp-item">
+                            <div class="temp-label">Range</div>
+                            <div class="temp-value">${range}°C</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="recommendation">
+                    <div class="recommendation-title">Today's Outfit</div>
+                    ${recommendation}
+                </div>
+            `;
+        }
+
+        function displayError(message) {
+            document.getElementById('content').innerHTML = `
+                <div class="error">${message}</div>
+            `;
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-CA', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+            });
+            document.getElementById('lastUpdate').textContent = `Last updated: ${timeString}`;
+        }
+
+        // Fetch weather immediately
+        fetchWeather();
+
+        // Update every hour
+        setInterval(fetchWeather, 3600000);
+    </script>
+</body>
+</html>
